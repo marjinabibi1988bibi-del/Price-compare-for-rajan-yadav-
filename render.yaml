@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: price-compare
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --timeout 90
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: SERPAPI_KEY
+        sync: false
+      - key: SCRAPERAPI_KEY
+        sync: false

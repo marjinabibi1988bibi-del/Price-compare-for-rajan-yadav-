@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Price Compare: Amazon, Flipkart, Croma ke prices ek jagah</title>
+<meta name="description" content="Koi bhi product link paste karo aur Amazon, Flipkart, Croma, Reliance Digital jaisi shopping sites ke prices compare karo. Sabse sasta deal turant dekho.">
+<meta name="theme-color" content="#4f46e5">
+<meta property="og:title" content="Price Compare: sabse sasta price ek click mein">
+<meta property="og:description" content="Product link paste karo, saari shopping sites ka price compare karo.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%B7%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#1a1d21;--muted:#667085;--line:#e4e7ec;--accent:#4f46e5;--good:#067647;--goodbg:#e7f6ec;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#111317;--card:#1b1e24;--text:#eceef2;--muted:#9aa3b2;--line:#2b303a;--accent:#8b87ff;--good:#6ee7a0;--goodbg:#12301f;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.45}
+main{max-width:760px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.5rem;margin:8px 0 4px}
+.sub{color:var(--muted);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.bar{display:flex;gap:10px;flex-wrap:wrap}
+input{flex:1;min-width:200px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);font-size:1rem}
+button{padding:12px 20px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-size:1rem;font-weight:600;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}
+.item{display:flex;gap:12px;align-items:center;padding:12px;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.item.best{background:var(--goodbg);border-radius:10px;border-top-color:transparent}
+.item img{width:56px;height:56px;object-fit:contain;border-radius:8px;background:#fff}
+.info{flex:1;min-width:0}
+.store{font-weight:700}
+.t{color:var(--muted);font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.price{font-weight:700;font-size:1.1rem;white-space:nowrap}
+.tag{color:var(--good);font-size:.75rem;font-weight:700;margin-left:6px}
+a.buy{padding:8px 12px;border:1px solid var(--line);border-radius:8px;color:var(--accent);text-decoration:none;font-size:.9rem}
+.err{color:#b42318}
+.hide{display:none}
+</style>
+</head>
+<body>
+<main>
+<h1>Price Compare</h1>
+<p class="sub">Koi bhi product link paste karo, saari shopping sites ka price ek jagah.</p>
+
+<div class="card">
+  <div class="bar">
+    <input id="url" type="url" placeholder="https://www.amazon.in/..." autocomplete="off">
+    <button id="go">Compare</button>
+  </div>
+</div>
+
+<div id="status" class="card hide"></div>
+<div id="out" class="card hide"></div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const status = $("status"), out = $("out"), btn = $("go");
+
+function safeHttp(u){ try{ const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : ""; }catch(e){ return ""; } }
+
+async function run(){
+  const url = $("url").value.trim();
+  if(!url) return;
+  btn.disabled = true;
+  out.classList.add("hide");
+  status.classList.remove("hide");
+  status.className = "card";
+  status.textContent = "Prices dhoondh raha hoon…";
+  try{
+    const r = await fetch("/api/compare?url=" + encodeURIComponent(url));
+    const data = await r.json();
+    if(!r.ok) throw new Error(data.error || "Something went wrong");
+    render(data);
+    status.classList.add("hide");
+  }catch(e){
+    status.className = "card err";
+    status.textContent = e.message;
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+function render(data){
+  out.innerHTML = "";
+  const h = document.createElement("div");
+  h.style.fontWeight = "700";
+  h.style.marginBottom = "8px";
+  h.textContent = data.product.title;
+  out.appendChild(h);
+
+  if(!data.results.length){
+    const p = document.createElement("p");
+    p.textContent = "Koi result nahi mila. Link ya product ka naam check karo.";
+    out.appendChild(p);
+  }
+  data.results.forEach((it, i) => {
+    const row = document.createElement("div");
+    row.className = "item" + (i === 0 ? " best" : "");
+
+    const img = document.createElement("img");
+    const src = safeHttp(it.image);
+    if(src){ img.src = src; img.alt = ""; img.loading = "lazy"; row.appendChild(img); }
+
+    const info = document.createElement("div");
+    info.className = "info";
+    const s = document.createElement("div");
+    s.className = "store";
+    s.textContent = it.store;
+    if(i === 0){ const t = document.createElement("span"); t.className = "tag"; t.textContent = "SABSE SASTA"; s.appendChild(t); }
+    const t = document.createElement("div");
+    t.className = "t";
+    t.textContent = it.title;
+    info.appendChild(s); info.appendChild(t);
+
+    const p = document.createElement("div");
+    p.className = "price";
+    p.textContent = it.price_text;
+
+    const a = document.createElement("a");
+    a.className = "buy";
+    a.href = safeHttp(it.link) || "#";
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = "Open";
+
+    row.appendChild(info); row.appendChild(p); row.appendChild(a);
+    out.appendChild(row);
+  });
+  out.classList.remove("hide");
+}
+
+btn.addEventListener("click", run);
+$("url").addEventListener("keydown", (e) => { if(e.key === "Enter") run(); });
+</script>
+</body>
+</html>
